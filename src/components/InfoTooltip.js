@@ -2,15 +2,14 @@ import React from 'react';
 import succesSign from '../images/succes-sign-up.svg';
 import errorSign from '../images/error-sign-up.svg';
 
-const InfoTooltip = ({ isOpen, onClose, isSucces }) => {
+const InfoTooltip = ({isopen, onClose, isSucces}) => {
     return (
         <div
-            className={`popup ${isOpen ? 'popup_opened' : ''}`}
+            className={`popup ${isopen ? 'popup_opened' : ''}`}
         >
             <div
-                isOpen={isOpen}
+                isopen={isopen ? true : undefined}
                 className="popup__container_sign"
-                onRequestClose={onClose}
             >
                 <img
                     className="popup__icon"

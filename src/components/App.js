@@ -11,7 +11,7 @@ import { CurrentUserContext } from '../contexts/CurrentUserContext.js';
 import api from '../utils/Api';
 import auth from '../utils/auth';
 import ProtectedRoute from './ProtectedRoute';
-import { Route, Switch, useHistory } from 'react-router-dom';
+import { Route, Switch, Redirect, useHistory } from 'react-router-dom';
 import InfoTooltip from './InfoTooltip.js';
 import Login from './Login.js';
 import Register from './Register.js';
@@ -57,6 +57,14 @@ function App() {
             })
 
     }, [])
+
+    React.useEffect(() => {
+        handleCheckToken();
+    }, []);
+
+    React.useEffect(() => {
+        loggedIn && history.push('/');
+      }, [loggedIn]);
 
     function handleInfoTooltipOpen() {
         setIsInfoTooltipOpen(true);
@@ -189,12 +197,11 @@ function App() {
     }
 
     const handleCheckToken = () => {
-            const token = localStorage.getItem('jwt');
+        const token = localStorage.getItem('jwt');
         if (token) {
             auth.checkToken(token)
                 .then((response) => {
                     if (response) {
-                        console.log(response)
                         setAuthUserEmail(response.data.email);
                         setLoggedIn(true);
                         history.push('/');
@@ -206,15 +213,6 @@ function App() {
                 });
         }
     };
-
-    React.useEffect(() => {
-        const token = localStorage.getItem('jwt')
-
-        if (token) {
-            handleCheckToken();
-        }
-    }, [handleCheckToken])
-
 
     return (
         <CurrentUserContext.Provider value={currentUser}>
@@ -251,6 +249,10 @@ function App() {
                     onCardLike={handleCardLike}
                     onCardDelete={handleCardDelete}
                 />
+
+                <Route path="/">
+                    {loggedIn ? <Redirect to="/" /> : <Redirect to="/sign-in" />}
+                </Route>
             </Switch>
 
             <Footer />
@@ -276,7 +278,7 @@ function App() {
                 onClose={closeAllPopups}
             />
             <InfoTooltip
-                isOpen={isInfoTooltipOpen}
+                isopen={isInfoTooltipOpen}
                 onClose={closeAllPopups}
                 isSucces={isSuccesLogin}
             />

@@ -8,7 +8,14 @@ import EditProfilePopup from './EditProfilePopup.js';
 import EditAvatarPopup from './EditAvatarPopup.js';
 import AddPlacePopup from './AddPlacePopup.js';
 import { CurrentUserContext } from '../contexts/CurrentUserContext.js';
-import api from '../utils/Api.js'
+import api from '../utils/Api';
+import auth from '../utils/auth';
+import ProtectedRoute from './ProtectedRoute';
+import { Route, Switch, useHistory } from 'react-router-dom';
+import InfoTooltip from './InfoTooltip.js';
+import Login from './Login.js';
+import Register from './Register.js';
+
 
 function App() {
 
@@ -16,9 +23,16 @@ function App() {
     const [isAddPlacePopupOpen, setAddPlacePopupOpen] = React.useState(false);
     const [isEditAvatarPopupOpen, setEditAvatarPopupOpen] = React.useState(false);
     const [isImgPopupOpen, setIsImgPopupOpen] = React.useState(false);
+    const [isInfoTooltipOpen, setIsInfoTooltipOpen] = React.useState(false);
+
     const [selectedCard, setSelectedCard] = React.useState({});
     const [currentUser, setCurrentUser] = React.useState({});
     const [cards, setCardsData] = React.useState([]);
+    const [loggedIn, setLoggedIn] = React.useState(true);
+    const [isSuccesLogin, setIsSuccesLogin] = React.useState(false);
+    const [authUserEmail, setAuthUserEmail] = React.useState(null);
+
+    const history = useHistory();
 
     React.useEffect(() => {
         api.getCardsInfo()
@@ -44,6 +58,10 @@ function App() {
 
     }, [])
 
+    function handleInfoTooltipOpen() {
+        setIsInfoTooltipOpen(true);
+    }
+
     function handleEditProfileClick() {
         setEditProfilePopupOpen(true);
     }
@@ -61,6 +79,7 @@ function App() {
         setAddPlacePopupOpen(false);
         setEditAvatarPopupOpen(false);
         setIsImgPopupOpen(false);
+        setIsInfoTooltipOpen(false);
     }
 
     function handleCardClick(card) {
@@ -129,18 +148,111 @@ function App() {
             })
     }
 
+    function handleSignOut() {
+        setLoggedIn(false);
+        localStorage.removeItem('jwt');
+        history.push('/sign-in');
+    }
+
+    function handleRegistration(data) {
+        auth.register(data)
+            .then(
+                () => {
+                    setIsSuccesLogin(true);
+                    handleInfoTooltipOpen();
+                    history.push('/sign-in');
+                }
+            )
+
+            .catch((err) => {
+                console.log(err);
+                setIsSuccesLogin(false);
+                handleInfoTooltipOpen();
+            })
+    }
+
+    function handleAuth(data) {
+        auth.auth(data)
+            .then(
+                (data) => {
+                    setLoggedIn(true);
+                    localStorage.setItem('jwt', data.token);
+                    history.push('/');
+                }
+            )
+
+            .catch((err) => {
+                console.log(err);
+                setIsSuccesLogin(false);
+                handleInfoTooltipOpen();
+            })
+    }
+
+    const handleCheckToken = () => {
+            const token = localStorage.getItem('jwt');
+        if (token) {
+            auth.checkToken(token)
+                .then((response) => {
+                    if (response) {
+                        console.log(response)
+                        setAuthUserEmail(response.data.email);
+                        setLoggedIn(true);
+                        history.push('/');
+                    }
+                })
+
+                .catch((err) => {
+                    console.log(err);
+                });
+        }
+    };
+
+    React.useEffect(() => {
+        const token = localStorage.getItem('jwt')
+
+        if (token) {
+            handleCheckToken();
+        }
+    }, [handleCheckToken])
+
 
     return (
         <CurrentUserContext.Provider value={currentUser}>
-            <Header />
-            <Main
-                cards={cards}
-                onEditProfile={handleEditProfileClick}
-                onAddPlace={handleAddPlaceClick}
-                onEditAvatar={handleEditAvatarClick}
-                onCardClick={handleCardClick}
-                onCardLike={handleCardLike}
-                onCardDelete={handleCardDelete} />
+
+            <Header
+                loggedIn={loggedIn}
+                onSignOut={handleSignOut}
+                authUserEmail={authUserEmail}
+            />
+
+            <Switch>
+                <Route path="/sign-up">
+                    <Register
+                        onRegistration={handleRegistration}
+                    />
+                </Route>
+
+                <Route path="/sign-in">
+                    <Login
+                        onAuth={handleAuth}
+                        onCheckToken={handleCheckToken}
+                    />
+                </Route>
+
+                <ProtectedRoute
+                    component={Main}
+                    path="/"
+                    loggedIn={loggedIn}
+                    cards={cards}
+                    onEditProfile={handleEditProfileClick}
+                    onAddPlace={handleAddPlaceClick}
+                    onEditAvatar={handleEditAvatarClick}
+                    onCardClick={handleCardClick}
+                    onCardLike={handleCardLike}
+                    onCardDelete={handleCardDelete}
+                />
+            </Switch>
+
             <Footer />
 
             <EditProfilePopup
@@ -162,6 +274,11 @@ function App() {
                 card={selectedCard}
                 isOpen={isImgPopupOpen}
                 onClose={closeAllPopups}
+            />
+            <InfoTooltip
+                isOpen={isInfoTooltipOpen}
+                onClose={closeAllPopups}
+                isSucces={isSuccesLogin}
             />
         </CurrentUserContext.Provider>
     );

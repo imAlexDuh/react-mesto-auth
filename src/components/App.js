@@ -28,7 +28,7 @@ function App() {
     const [selectedCard, setSelectedCard] = React.useState({});
     const [currentUser, setCurrentUser] = React.useState({});
     const [cards, setCardsData] = React.useState([]);
-    const [loggedIn, setLoggedIn] = React.useState(true);
+    const [loggedIn, setLoggedIn] = React.useState(false);
     const [isSuccesLogin, setIsSuccesLogin] = React.useState(false);
     const [authUserEmail, setAuthUserEmail] = React.useState(null);
 
@@ -167,7 +167,6 @@ function App() {
             .then(
                 () => {
                     setIsSuccesLogin(true);
-                    handleInfoTooltipOpen();
                     history.push('/sign-in');
                 }
             )
@@ -175,16 +174,20 @@ function App() {
             .catch((err) => {
                 console.log(err);
                 setIsSuccesLogin(false);
+            })
+
+            .finally(() => {
                 handleInfoTooltipOpen();
             })
     }
 
-    function handleAuth(data) {
-        auth.auth(data)
+    function handleAuth(info) {
+        setAuthUserEmail(info.email);
+        auth.auth(info)
             .then(
-                (data) => {
+                (info) => {
                     setLoggedIn(true);
-                    localStorage.setItem('jwt', data.token);
+                    localStorage.setItem('jwt', info.token);
                     history.push('/');
                 }
             )
@@ -213,6 +216,22 @@ function App() {
                 });
         }
     };
+
+    const isOpen = isEditAvatarPopupOpen || isEditProfilePopupOpen || isAddPlacePopupOpen || isImgPopupOpen
+
+    React.useEffect(() => {
+      function closeByEscape(evt) {
+        if(evt.key === 'Escape') {
+          closeAllPopups();
+        }
+      }
+      if(isOpen) {
+        document.addEventListener('keydown', closeByEscape);
+        return () => {
+          document.removeEventListener('keydown', closeByEscape);
+        }
+      }
+    }, [isOpen]) 
 
     return (
         <CurrentUserContext.Provider value={currentUser}>
